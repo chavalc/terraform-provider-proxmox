@@ -8,6 +8,7 @@ import (
 )
 
 var providerVersion = "unset"
+
 const providerName = "terraform-provider-proxmox"
 
 // Provider returns a schema.Provider for Proxmox.
@@ -35,8 +36,8 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"proxmox_resource_vm":     resourceVM(),
-			"proxmox_resource_volume": resourceVolume(),
+			"proxmox_vm":     resourceVM(),
+			"proxmox_volume": resourceVolume(),
 		},
 
 		ConfigureFunc: providerConfigure,
