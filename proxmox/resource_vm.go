@@ -35,7 +35,13 @@ func resourceVM() *schema.Resource {
 			"template": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default: false,
+				Default:  false,
+				ForceNew: true,
+			},
+			"start_after_create": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
 				ForceNew: true,
 			},
 			"clone": &schema.Schema{
@@ -66,7 +72,7 @@ func resourceVM() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
-			"ide_devices": &schema.Schema{
+			"ide_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -90,7 +96,7 @@ func resourceVM() *schema.Resource {
 					},
 				},
 			},
-			"network_devices": &schema.Schema{
+			"network_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -138,7 +144,7 @@ func resourceVM() *schema.Resource {
 					},
 				},
 			},
-			"serial_devices": &schema.Schema{
+			"serial_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -154,7 +160,7 @@ func resourceVM() *schema.Resource {
 					},
 				},
 			},
-			"virtio_devices": &schema.Schema{
+			"virtio_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -166,6 +172,10 @@ func resourceVM() *schema.Resource {
 						"file": {
 							Type:     schema.TypeString,
 							Required: true,
+						},
+						"cache": {
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"format": {
 							Type:     schema.TypeString,
@@ -194,15 +204,7 @@ func resourceVM() *schema.Resource {
 	}
 }
 
-func resourceVMCreate(d *schema.ResourceData, meta interface{}) error {
-	if _, ok := d.GetOk("clone"); ok {
-		return resourceVMCloneCreate(d, meta)
-	}
-
-	client := meta.(*goproxmox.Client)
-	node := d.Get("node").(string)
-	vmID := d.Get("vm_id").(int)
-
+func parseVMConfig(d *schema.ResourceData) (*goproxmox.VMConfig, error) {
 	config := new(goproxmox.VMConfig)
 
 	if v, ok := d.GetOk("args"); ok {
@@ -230,7 +232,7 @@ func resourceVMCreate(d *schema.ResourceData, meta interface{}) error {
 			number := elem["number"].(int)
 			media, err := goproxmox.MediaTypeFromString(elem["media"].(string))
 			if err != nil {
-				return err
+				return nil, err
 			}
 			device := &goproxmox.IDEDevice{
 				File:  goproxmox.String(elem["file"].(string)),
@@ -249,7 +251,7 @@ func resourceVMCreate(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[DEBUG] Network device elem %v", elem)
 			cardModel, err := goproxmox.NetworkCardModelFromString(elem["model"].(string))
 			if err != nil {
-				return err
+				return nil, err
 			}
 			number := elem["number"].(int)
 			device := &goproxmox.NetworkDevice{
@@ -314,9 +316,34 @@ func resourceVMCreate(d *schema.ResourceData, meta interface{}) error {
 				//Snapshot: goproxmox.Bool(elem["snapshot"].(bool)),
 			}
 
+			if val, ok := elem["backup"]; ok && val != "" {
+				device.Backup = goproxmox.Bool(val.(bool))
+			}
+
+			if val, ok := elem["cache"]; ok && val != "" {
+				device.Cache = goproxmox.String(val.(string))
+			}
+
 			log.Printf("[DEBUG] VirtIO device %v", device.GetQMOptionValue())
 			config.AddVirtIODevice(number, device)
 		}
+	}
+
+	return config, nil
+}
+
+func resourceVMCreate(d *schema.ResourceData, meta interface{}) error {
+	if _, ok := d.GetOk("clone"); ok {
+		return resourceVMCloneCreate(d, meta)
+	}
+
+	client := meta.(*goproxmox.Client)
+	node := d.Get("node").(string)
+	vmID := d.Get("vm_id").(int)
+
+	config, err := parseVMConfig(d)
+	if err != nil {
+		return err
 	}
 
 	if err := client.VMs.CreateVM(node, vmID, config); err != nil {
@@ -332,6 +359,13 @@ func resourceVMCreate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 		log.Printf("[INFO] VM template from ID %s created", d.Id())
+	}
+
+	startAfterCreate := d.Get("start_after_create").(bool)
+	if startAfterCreate {
+		if err := client.VMs.StartVM(node, vmID); err != nil {
+			return err
+		}
 	}
 
 	return resourceVMRead(d, meta)
@@ -441,7 +475,7 @@ func resourceVMUpdate(d *schema.ResourceData, meta interface{}) error {
 	node := d.Get("node").(string)
 	vmID := d.Get("vm_id").(int)
 
-	config, err := client.VMs.GetVMConfig(node, vmID)
+	config, err := parseVMConfig(d)
 	if err != nil {
 		return err
 	}
