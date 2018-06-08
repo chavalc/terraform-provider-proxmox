@@ -1,5 +1,5 @@
 [[constraint]]
-  name = "github.com/andrexus/goproxmox"
+  name = "github.com/chavalc/goproxmox"
   version = "0.1.7"
 
 [[constraint]]

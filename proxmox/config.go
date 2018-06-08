@@ -3,7 +3,7 @@ package proxmox
 import (
 	"log"
 
-	"github.com/andrexus/goproxmox"
+	"github.com/chavalc/goproxmox"
 )
 
 type Config struct {

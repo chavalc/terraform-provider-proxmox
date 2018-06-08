@@ -5,7 +5,7 @@ import (
 
 	"fmt"
 
-	"github.com/andrexus/goproxmox"
+	"github.com/chavalc/goproxmox"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 

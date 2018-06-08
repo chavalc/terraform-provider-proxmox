@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  name = "github.com/andrexus/goproxmox"
+  name = "github.com/chavalc/goproxmox"
   packages = [".","pveauth","pveauth/internal"]
   revision = "f03f0321bbdeced34d870685f500b8d9ae99ba06"
   version = "v0.1.7"

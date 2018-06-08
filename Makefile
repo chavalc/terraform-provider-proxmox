@@ -7,10 +7,10 @@ GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
 
 GIT_LATEST_TAG=$(shell git describe --abbrev=0 --tags)
-VERSION_IMPORT=github.com/andrexus/terraform-provider-proxmox/proxmox
+VERSION_IMPORT=github.com/chavalc/terraform-provider-proxmox/proxmox
 GOLDFLAGS=-X $(VERSION_IMPORT).providerVersion=$(GIT_LATEST_TAG)
 OSARCH=darwin/amd64 linux/386 linux/amd64 linux/arm windows/386 windows/amd64
-DIST_USER=andrexus
+DIST_USER=chavalc
 
 export GOLDFLAGS
 

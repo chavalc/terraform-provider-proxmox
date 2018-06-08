@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/andrexus/terraform-provider-proxmox/proxmox"
+	"github.com/chavalc/terraform-provider-proxmox/proxmox"
 )
 
 func main() {
